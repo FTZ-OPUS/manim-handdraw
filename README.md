@@ -243,6 +243,7 @@ they bite anyone writing this by hand:
 | [`examples/01_minimal.py`](examples/01_minimal.py) | the one-liner |
 | [`examples/02_construct_face.py`](examples/02_construct_face.py) | replacing solid areas with compass/parametric construction |
 | [`examples/peashooter/`](examples/peashooter) | the full 2.5-minute video: drawing, close-up construction of eyes and muzzle, colour wash, recoil physics |
+| [`examples/starlight-witch/`](examples/starlight-witch) | Starry Witch eye-repair case: 4m44s of progressive drawing, ellipse-based eye construction, and layered colour |
 
 ```bash
 cd examples/peashooter
