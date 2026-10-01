@@ -213,6 +213,7 @@ strokes = hd.StrokeSet.load("lineart.strokes.npz")
 | [`examples/02_construct_face.py`](examples/02_construct_face.py) | 用圆规与参数方程构造替代实心区域 |
 | [`examples/peashooter/`](examples/peashooter) | 完整 2.5 分钟成片：逐笔手绘、五官特写构造、色彩浸润、后坐力物理 |
 | [`examples/starlight-witch/`](examples/starlight-witch) | 星辉魔女（逆时空秩序圣女）眼睛修复案例：4 分 44 秒逐笔手绘、椭圆五官构造与分层上色 |
+| [`examples/order-goddess/`](examples/order-goddess) | 秩序神女手绘成片：约 5 分 42 秒，1080p60；原版视频可在案例 Release 下载 |
 
 ```bash
 cd examples/peashooter
