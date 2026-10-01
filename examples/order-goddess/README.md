@@ -2,7 +2,7 @@
 
 这段约 5 分 42 秒的 1080p60 动画使用 `manim-handdraw` 创作。此案例展示最终成片；原版 MP4 保留完整画质，作为 GitHub Release 附件提供下载。
 
-**[前往案例 Release 下载《秩序神女》完整版 MP4](https://github.com/FTZ-OPUS/manim-handdraw/releases/tag/example-order-goddess)**
+**[直接下载《秩序神女》完整版 MP4（166 MB）](https://github.com/FTZ-OPUS/manim-handdraw/releases/download/example-order-goddess/order-goddess-handdraw-1080p60-v6.mp4)** · [查看案例 Release](https://github.com/FTZ-OPUS/manim-handdraw/releases/tag/example-order-goddess)
 
 本目录仅提供视频展示入口；未随此案例上传源码和制作素材。
 
