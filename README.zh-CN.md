@@ -15,7 +15,26 @@ class Demo(hd.HandDrawScene):
 
 这一行会：抽出笔画 → 带笔尖光标逐笔生长 → 再一条条把颜色浸润进去。
 
-![演示](docs/demo.gif)
+## 0.1.1：双原图的人像工作流
+
+复杂人物请准备**构图一致的两张图**：原始铅笔稿用于提取线条和眼睛等五官的原始笔迹；彩色原稿用于对齐后的分层上色和最终画面。五官的精细部分是从铅笔稿提成透明像素片，在画笔演出后显现；其余笔画由 Manim 路径逐笔描绘。文档不会把五官像素误称为逐根矢量手画。
+
+可移植的 [Manim 手绘创作技能](https://github.com/FTZ-OPUS/manim-handdraw/blob/main/skills/manim-handdraw-creator/SKILL.md) 包含双图预处理、五官提取脚本、配对样图和可运行的短演示；按 [双图操作示例](https://github.com/FTZ-OPUS/manim-handdraw/blob/main/skills/manim-handdraw-creator/examples/paired-inputs.md) 即可复现。给其他 AI 使用时，复制整个 `skills/manim-handdraw-creator/` 文件夹到它的技能目录，或把仓库及 `SKILL.md` 路径交给它；请保留旁边的脚本、参考资料、示例和素材。[秩序神女精简复现案例](https://github.com/FTZ-OPUS/manim-handdraw/tree/main/examples/order-goddess-repro/) 展示完整成片的编排。
+
+![铅笔稿与彩色原稿配对的短演示](https://raw.githubusercontent.com/FTZ-OPUS/manim-handdraw/main/skills/manim-handdraw-creator/assets/portrait-preview.gif)
+
+> 这段短预览让画笔逐条描绘部分线条，随后快速显现其余路径，再显现原铅笔稿五官和对应彩色原稿；完整成片请看秩序神女案例。
+
+```python
+strokes = hd.from_image("pencil_lineart.png", size=7.6)
+strokes = strokes.cut_out_rectangles([face_window])  # 只剪五官窗口内的路径
+widths = strokes.adaptive_widths(regular=2.2, fine=1.5)  # 密集区域先用细线
+# 其余线条逐笔画；然后在原位显现从铅笔稿提取的五官片。
+```
+
+一行式上色也新增可选的柔和累积模式：`hand_draw("pencil_lineart.png", color=["base.png", "shadows.png"], color_mode="soft", color_final="finished.png")`。最终成品图显示后才移除过程色层；原有竖条扫入仍是默认效果。
+
+![演示](https://raw.githubusercontent.com/FTZ-OPUS/manim-handdraw/main/docs/demo.gif)
 
 > 演示片段：库自带的豌豆射手示例，完整视频由本库端到端渲染。
 
@@ -64,13 +83,13 @@ class Demo(hd.HandDrawScene):
         )
 ```
 
-`hand_draw(..., draw=False)` 不播放、只把 `StrokeSet` 返回给你，方便自己插入特写镜头和几何构造——[`examples/peashooter`](examples/peashooter) 就是这么做的。
+`hand_draw(..., draw=False)` 不播放、只把 `StrokeSet` 返回给你，方便自己插入特写镜头和几何构造——[`examples/peashooter`](https://github.com/FTZ-OPUS/manim-handdraw/tree/main/examples/peashooter) 就是这么做的。
 
 ---
 
 ## 库的结构
 
-三层，可以单独用。全都是标准 Manim 对象，没有自定义渲染器、没有 monkey-patch，所以能和你already会写的动画自由组合。
+三层，可以单独用。全都是标准 Manim 对象，没有自定义渲染器、没有 monkey-patch，所以能和你已经会写的动画自由组合。
 
 | 层 | 提供什么 | 需要 `[extract]`？ |
 |---|---|---|
@@ -101,7 +120,7 @@ for p in strokes:
 
 ### 工具层 —— 一场几何作画
 
-用圆规画圆、用参数方程扫出椭圆，再用墨线描摹：
+用圆规画圆、用参数方程扫出椭圆，再用墨线描摹。这适合豌豆射手一类几何化角色；复杂人像的精细五官请按上文从铅笔稿提取：
 
 ```python
 # 圆规：枢轴 + 双关节臂，旋转与画圆严格同步
@@ -139,7 +158,7 @@ self.play(anim)
 
 ## 抽取流水线
 
-`from_image()` 跑完这套流程后会把结果缓存成 `<图名>.strokes.npz`，所以重复渲染几乎零成本：
+`from_image()` 跑完这套流程后会把结果缓存成 `<图名>.strokes.npz`；图片和提取参数都未变化时，重复渲染无需再次抽取：
 
 | 步骤 | 做什么 | 为什么 |
 |---|---|---|
@@ -209,12 +228,12 @@ strokes = hd.StrokeSet.load("lineart.strokes.npz")
 
 | 文件 | 演示内容 |
 |---|---|
-| [`examples/01_minimal.py`](examples/01_minimal.py) | 一行式全流程 |
-| [`examples/02_construct_face.py`](examples/02_construct_face.py) | 用圆规与参数方程构造替代实心区域 |
-| [`examples/peashooter/`](examples/peashooter) | 完整 2.5 分钟成片：逐笔手绘、五官特写构造、色彩浸润、后坐力物理 |
-| [`examples/starlight-witch/`](examples/starlight-witch) | 星辉魔女（逆时空秩序圣女）眼睛修复案例：4 分 44 秒逐笔手绘、椭圆五官构造与分层上色 |
-| [`examples/order-goddess/`](examples/order-goddess) | 秩序神女手绘成片：约 5 分 42 秒，1080p60；原版视频可在案例 Release 下载 |
-| [`examples/order-goddess-repro/`](examples/order-goddess-repro) | 秩序神女精简可复现版：完整场景源码、分层素材、成品预览图和压缩视频下载入口；展示密集笔画如何做成可直接发布的动画 |
+| [`examples/01_minimal.py`](https://github.com/FTZ-OPUS/manim-handdraw/blob/main/examples/01_minimal.py) | 一行式全流程 |
+| [`examples/02_construct_face.py`](https://github.com/FTZ-OPUS/manim-handdraw/blob/main/examples/02_construct_face.py) | 用圆规与参数方程构造替代实心区域 |
+| [`examples/peashooter/`](https://github.com/FTZ-OPUS/manim-handdraw/tree/main/examples/peashooter) | 完整 2.5 分钟成片：逐笔手绘、五官特写构造、色彩浸润、后坐力物理 |
+| [`examples/starlight-witch/`](https://github.com/FTZ-OPUS/manim-handdraw/tree/main/examples/starlight-witch) | 星辉魔女（逆时空秩序圣女）眼睛修复案例：4 分 44 秒逐笔手绘、椭圆五官构造与分层上色 |
+| [`examples/order-goddess/`](https://github.com/FTZ-OPUS/manim-handdraw/tree/main/examples/order-goddess) | 秩序神女手绘成片：约 5 分 42 秒，1080p60；原版视频可在案例 Release 下载 |
+| [`examples/order-goddess-repro/`](https://github.com/FTZ-OPUS/manim-handdraw/tree/main/examples/order-goddess-repro) | 秩序神女精简可复现版：完整场景源码、分层素材、成品预览图和压缩视频下载入口；展示密集笔画如何做成可直接发布的动画 |
 
 ```bash
 cd examples/peashooter
@@ -236,10 +255,10 @@ manim -ql peashooter.py CowboyPea
 
 ## 许可
 
-MIT，见 [LICENSE](LICENSE)。
+MIT，见 [LICENSE](https://github.com/FTZ-OPUS/manim-handdraw/blob/main/LICENSE)。
 
 自带的示例素材（`examples/peashooter/assets/`）采用同样的许可。
 
 ---
 
-[English →](README.md)
+[English →](https://github.com/FTZ-OPUS/manim-handdraw/blob/main/README.md)

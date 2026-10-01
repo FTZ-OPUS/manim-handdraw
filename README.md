@@ -19,7 +19,46 @@ class Demo(hd.HandDrawScene):
 That single call extracts the strokes, draws them one at a time with a moving pen
 cursor, then washes the colour in strip by strip.
 
-![demo](docs/demo.gif)
+## New in 0.1.1: portraits from two matching originals
+
+For a detailed character, provide **both** the original pencil drawing and its
+matching colour illustration. Extract paths and facial ink from the pencil
+drawing; use the colour original for aligned colour layers and the final image.
+The face is deliberately faithful to the source: eyes and other difficult
+details are extracted as transparent original pixels, revealed with a drawing
+performance. The other strokes are traced with Manim paths. They are not all
+individually redrawn vectors.
+
+The portable [Manim hand-drawn portrait skill](https://github.com/FTZ-OPUS/manim-handdraw/blob/main/skills/manim-handdraw-creator/SKILL.md)
+includes the two-image preparation script, facial-detail extraction, a matched
+sample pair, and a runnable short preview. See its
+[paired-input walkthrough](https://github.com/FTZ-OPUS/manim-handdraw/blob/main/skills/manim-handdraw-creator/examples/paired-inputs.md).
+To reuse the skill in another AI environment, copy the **entire**
+`skills/manim-handdraw-creator/` directory into that environment's skill
+directory, or give the agent this repository and the skill's `SKILL.md` path.
+Keep its scripts, references, examples and assets together.
+The [Order Goddess reproduction](https://github.com/FTZ-OPUS/manim-handdraw/tree/main/examples/order-goddess-repro/) is a longer
+finished-film example.
+
+![Paired-pencil portrait preview](https://raw.githubusercontent.com/FTZ-OPUS/manim-handdraw/main/skills/manim-handdraw-creator/assets/portrait-preview.gif)
+
+> Short skill preview: sampled pen tracing, rapid completion of the remaining
+> paths, original pencil facial ink, and the matching colour reference.
+
+```python
+strokes = hd.from_image("pencil_lineart.png", size=7.6)
+strokes = strokes.cut_out_rectangles([face_window])
+widths = strokes.adaptive_widths(regular=2.2, fine=1.5)
+# Draw the remaining paths with Stylus, then reveal the pencil-derived face patch.
+```
+
+For layered colouring in the one-call API, use
+`hand_draw("pencil_lineart.png", color=["base.png", "shadows.png"],
+color_mode="soft", color_final="finished.png")`. This keeps the partial
+layers visible until the finished illustration appears. The original strip
+sweep remains the default.
+
+![demo](https://raw.githubusercontent.com/FTZ-OPUS/manim-handdraw/main/docs/demo.gif)
 
 > Demo: the bundled peashooter example, rendered end-to-end by this library.
 
@@ -73,7 +112,7 @@ class Demo(hd.HandDrawScene):
 
 `hand_draw(..., draw=False)` returns the `StrokeSet` instead of playing it, so you can
 interleave your own close-ups and geometric constructions. That's exactly what
-[`examples/peashooter`](examples/peashooter) does.
+[`examples/peashooter`](https://github.com/FTZ-OPUS/manim-handdraw/tree/main/examples/peashooter) does.
 
 ---
 
@@ -113,7 +152,8 @@ for p in strokes:
 ### Draft — the geometry session
 
 Draw a circle with a compass, sweep out an ellipse from its parametric equation, then
-trace it in ink:
+trace it in ink. This suits deliberately geometric characters such as the peashooter;
+for a detailed portrait, use the pencil-derived face patch described above:
 
 ```python
 # compass: pivot + jointed arms; rotation stays in sync with the circle being drawn
@@ -155,7 +195,7 @@ down your character — a bug that is easy to ship and annoying to diagnose.
 ## The extraction pipeline
 
 `from_image()` runs this, then caches the result to `<image>.strokes.npz` so re-renders
-cost nothing:
+avoid extraction when the image and extraction settings are unchanged:
 
 | Step | What happens | Why |
 |---|---|---|
@@ -240,12 +280,12 @@ they bite anyone writing this by hand:
 
 | File | Shows |
 |---|---|
-| [`examples/01_minimal.py`](examples/01_minimal.py) | the one-liner |
-| [`examples/02_construct_face.py`](examples/02_construct_face.py) | replacing solid areas with compass/parametric construction |
-| [`examples/peashooter/`](examples/peashooter) | the full 2.5-minute video: drawing, close-up construction of eyes and muzzle, colour wash, recoil physics |
-| [`examples/starlight-witch/`](examples/starlight-witch) | Starry Witch eye-repair case: 4m44s of progressive drawing, ellipse-based eye construction, and layered colour |
-| [`examples/order-goddess/`](examples/order-goddess) | Order Goddess hand-drawn animation: a 5m42s, 1080p60 finished video available from the example release |
-| [`examples/order-goddess-repro/`](examples/order-goddess-repro) | Reproducible Order Goddess scene: complete source, layered assets, preview image, and compressed video download; a dense hand-drawn illustration becomes a finished animation |
+| [`examples/01_minimal.py`](https://github.com/FTZ-OPUS/manim-handdraw/blob/main/examples/01_minimal.py) | the one-liner |
+| [`examples/02_construct_face.py`](https://github.com/FTZ-OPUS/manim-handdraw/blob/main/examples/02_construct_face.py) | replacing solid areas with compass/parametric construction |
+| [`examples/peashooter/`](https://github.com/FTZ-OPUS/manim-handdraw/tree/main/examples/peashooter) | the full 2.5-minute video: drawing, close-up construction of eyes and muzzle, colour wash, recoil physics |
+| [`examples/starlight-witch/`](https://github.com/FTZ-OPUS/manim-handdraw/tree/main/examples/starlight-witch) | Starry Witch eye-repair case: 4m44s of progressive drawing, ellipse-based eye construction, and layered colour |
+| [`examples/order-goddess/`](https://github.com/FTZ-OPUS/manim-handdraw/tree/main/examples/order-goddess) | Order Goddess hand-drawn animation: a 5m42s, 1080p60 finished video available from the example release |
+| [`examples/order-goddess-repro/`](https://github.com/FTZ-OPUS/manim-handdraw/tree/main/examples/order-goddess-repro) | Reproducible Order Goddess scene: complete source, layered assets, preview image, and compressed video download; a dense hand-drawn illustration becomes a finished animation |
 
 ```bash
 cd examples/peashooter
@@ -275,10 +315,10 @@ Being upfront, because this determines whether it fits your artwork:
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT — see [LICENSE](https://github.com/FTZ-OPUS/manim-handdraw/blob/main/LICENSE).
 
 Bundled example artwork (`examples/peashooter/assets/`) is released under the same licence.
 
 ---
 
-[中文说明 →](README.zh-CN.md)
+[中文说明 →](https://github.com/FTZ-OPUS/manim-handdraw/blob/main/README.zh-CN.md)

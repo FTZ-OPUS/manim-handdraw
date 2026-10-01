@@ -14,6 +14,8 @@
 from __future__ import annotations
 
 import os
+import hashlib
+import json
 
 import numpy as np
 
@@ -389,15 +391,16 @@ def extract_strokes(
         row, col = P[:, 0], P[:, 1]
         x, y = px_to_manim(col, row, width=W, height=H, fit=fit, size=size, center=center)
         pts = np.stack([x, y], axis=1)
+        widths = 2.0 * dt[np.clip(row.astype(int), 0, H - 1),
+                          np.clip(col.astype(int), 0, W - 1)]
+        widths = widths / (H if fit == "height" else W) * size
         if len(pts) > max_points:
             # 弧长重采样在 Manim 单位下再做一次，保证长短笔画点密度一致
             s = np.concatenate([[0.0], np.cumsum(np.hypot(*np.diff(pts, axis=0).T))])
             if s[-1] > 1e-9:
                 t = np.linspace(0.0, s[-1], max_points)
                 pts = np.stack([np.interp(t, s, pts[:, 0]), np.interp(t, s, pts[:, 1])], 1)
-        widths = 2.0 * dt[np.clip(row.astype(int), 0, H - 1),
-                          np.clip(col.astype(int), 0, W - 1)]
-        widths = widths / (H if fit == "height" else W) * size
+                widths = np.interp(t, s, widths)
         out_paths.append(pts)
         out_widths.append(widths)
 
@@ -422,20 +425,38 @@ def extract_strokes(
     return {"paths": out_paths, "widths": out_widths, "size": (W, H), "blobs": blobs}
 
 
+def _cache_key(image, options):
+    """Hash the source bytes and extraction settings, not merely the filename."""
+    digest = hashlib.sha256(b"manim-handdraw-extract-v0.1.1\0")
+    with open(image, "rb") as source:
+        for chunk in iter(lambda: source.read(1024 * 1024), b""):
+            digest.update(chunk)
+    serializable = json.dumps(options, sort_keys=True, separators=(",", ":"),
+                              default=lambda value: value.tolist() if isinstance(
+                                  value, np.ndarray) else str(value))
+    digest.update(serializable.encode("utf-8"))
+    return digest.hexdigest()
+
+
 def from_image(image, *, cache=True, **kw):
     """``extract_strokes`` 的便捷入口，返回 :class:`~manim_handdraw.strokes.StrokeSet`。
 
-    默认会把结果缓存到 ``<图片名>.strokes.npz``，第二次调用直接读缓存——
-    抽一次要几秒，缓存后重跑场景几乎零成本。
+    默认把结果缓存到 ``<图片名>.strokes.npz``。图片或提取参数变化时
+    自动重新抽取，避免旧笔画悄悄覆盖新设置。
     """
     from .strokes import StrokeSet
 
-    cache_path = None
-    if cache and isinstance(image, str):
-        cache_path = os.path.splitext(image)[0] + ".strokes.npz"
+    cache_path, cache_key = None, None
+    if cache and isinstance(image, (str, os.PathLike)):
+        cache_path = os.path.splitext(os.fspath(image))[0] + ".strokes.npz"
+        cache_key = _cache_key(image, kw)
         if os.path.exists(cache_path):
             try:
-                return StrokeSet.load(cache_path)
+                with np.load(cache_path, allow_pickle=False) as archive:
+                    hit = ("cache_key" in archive and
+                           archive["cache_key"].item() == cache_key)
+                if hit:
+                    return StrokeSet.load(cache_path)
             except Exception:                      # 缓存损坏就重新抽
                 pass
 
@@ -446,7 +467,7 @@ def from_image(image, *, cache=True, **kw):
                    image=str(image) if isinstance(image, str) else None)
     if cache_path:
         try:
-            ss.save(cache_path)
+            ss.save(cache_path, cache_key=cache_key)
         except Exception:
             pass
     return ss

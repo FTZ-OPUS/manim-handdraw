@@ -135,8 +135,109 @@ class StrokeSet:
                          size=self.size, center=(self.center[0] + dx, self.center[1] + dy),
                          widths=self.widths, blobs=self.blobs, image=self.image)
 
+    def cut_out_rectangles(self, rectangles, *, min_length=0.05):
+        """Remove only the parts of strokes inside face/detail windows.
+
+        Each rectangle is ``(x_left, x_right, y_bottom, y_top)`` in Manim
+        coordinates. A line crossing a window is split at its exact boundary,
+        so hair or clothing outside the window is retained. The original set
+        is not modified. Invalid or reversed bounds raise ``ValueError``.
+        """
+        boxes = [tuple(map(float, box)) for box in rectangles]
+        if any(len(box) != 4 or not np.all(np.isfinite(box)) or
+               box[0] >= box[1] or box[2] >= box[3] for box in boxes):
+            raise ValueError("rectangles must be (x_left, x_right, y_bottom, y_top)")
+        if not np.isfinite(min_length) or min_length < 0:
+            raise ValueError("min_length must be non-negative and finite")
+        if not boxes:
+            return StrokeSet(self.paths, size=self.size, center=self.center,
+                             widths=self.widths, blobs=self.blobs, image=self.image)
+
+        new_paths, new_widths = [], []
+        valid_widths = (self.widths is not None and
+                        len(self.widths) == len(self.paths) and
+                        all(len(w) == len(p) for p, w in zip(self.paths, self.widths)))
+
+        for index, path in enumerate(self.paths):
+            if len(path) < 2:
+                continue
+            widths = self.widths[index] if valid_widths else None
+            current, current_widths = [], []
+
+            def flush():
+                if len(current) >= 2 and np.linalg.norm(
+                        np.diff(current, axis=0), axis=1).sum() >= min_length:
+                    new_paths.append(np.asarray(current, float))
+                    if widths is not None:
+                        new_widths.append(np.asarray(current_widths, float))
+                current.clear()
+                current_widths.clear()
+
+            for i, (start, end) in enumerate(zip(path[:-1], path[1:])):
+                delta = end - start
+                cuts = [0.0, 1.0]
+                for x0, x1, y0, y1 in boxes:
+                    for axis, boundary in ((0, x0), (0, x1), (1, y0), (1, y1)):
+                        if abs(delta[axis]) > 1e-12:
+                            t = (boundary - start[axis]) / delta[axis]
+                            if 0.0 < t < 1.0:
+                                cuts.append(float(t))
+                cuts = sorted(set(cuts))
+                for left, right in zip(cuts[:-1], cuts[1:]):
+                    mid = start + (left + right) * 0.5 * delta
+                    inside = any(x0 <= mid[0] <= x1 and y0 <= mid[1] <= y1
+                                 for x0, x1, y0, y1 in boxes)
+                    if inside:
+                        flush()
+                        continue
+                    a, b = start + left * delta, start + right * delta
+                    if not current or not np.allclose(current[-1], a, atol=1e-10):
+                        flush()
+                        current.append(a)
+                        if widths is not None:
+                            current_widths.append(widths[i] + left * (widths[i + 1] - widths[i]))
+                    current.append(b)
+                    if widths is not None:
+                        current_widths.append(widths[i] + right * (widths[i + 1] - widths[i]))
+            flush()
+
+        return StrokeSet(new_paths, size=self.size, center=self.center,
+                         widths=new_widths if valid_widths else None,
+                         blobs=self.blobs, image=self.image)
+
+    def adaptive_widths(self, *, regular=2.2, fine=1.5, radius=0.14,
+                        thin_percentile=70, sample_step=3):
+        """Return one stroke width per path, thinning crowded detail.
+
+        This is an optional ``[extract]`` operation: SciPy is imported only
+        when called. Widths are Manim stroke widths; check a render at the
+        intended resolution before settling on values.
+        """
+        if not (np.isfinite(regular) and np.isfinite(fine) and
+                0 < fine <= regular):
+            raise ValueError("require 0 < fine <= regular")
+        if not np.isfinite(radius) or radius <= 0:
+            raise ValueError("radius must be positive and finite")
+        if not 0 <= thin_percentile <= 100 or not isinstance(sample_step, int) or sample_step < 1:
+            raise ValueError("thin_percentile must be 0..100 and sample_step >= 1")
+        if not self.paths:
+            return []
+
+        from scipy.spatial import cKDTree
+
+        all_points = np.vstack(self.paths)
+        owners = np.repeat(np.arange(len(self.paths)), [len(p) for p in self.paths])
+        tree = cKDTree(all_points)
+        densities = []
+        for index, path in enumerate(self.paths):
+            neighbours = tree.query_ball_point(path[::sample_step], radius)
+            others = sum(np.count_nonzero(owners[ids] != index) for ids in neighbours)
+            densities.append(others / max(1, len(neighbours)))
+        cutoff = float(np.percentile(densities, thin_percentile))
+        return [fine if density > cutoff else regular for density in densities]
+
     # ------------------------------------------------------------ 存取
-    def save(self, path):
+    def save(self, path, *, cache_key=None):
         """存成 ``.npz``（``allow_pickle``），方便离线抽一次、反复渲染。"""
         payload = {
             "paths": np.array(self.paths, dtype=object),
@@ -145,6 +246,8 @@ class StrokeSet:
         }
         if self.widths is not None:
             payload["widths"] = np.array(self.widths, dtype=object)
+        if cache_key is not None:
+            payload["cache_key"] = np.array(cache_key)
         np.savez_compressed(path, **payload)
         return path
 

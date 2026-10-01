@@ -17,7 +17,8 @@ from __future__ import annotations
 
 import numpy as np
 from manim import (
-    DOWN, FadeIn, FadeOut, Group, MovingCameraScene, Text, UP, VMobject, VGroup, config,
+    DOWN, FadeIn, FadeOut, Group, ImageMobject, MovingCameraScene, Text, UP,
+    VMobject, VGroup, config,
 )
 
 from .strokes import Stylus, stroke_mobject
@@ -74,7 +75,10 @@ class HandDrawScene(MovingCameraScene):
     def hand_draw(self, image, color=None, *, size=7.0, center=(0.0, 0.05),
                   stroke_width=3.0, pen_speed=0.9, min_time=0.15,
                   show_stylus=True, ui=True, title=None, subtitle="",
-                  draw=True, cache=True, **extract_kw):
+                  draw=True, cache=True, color_mode="sweep",
+                  color_final=None, color_layer_run_time=4.0,
+                  color_layer_pause=1.6,
+                  **extract_kw):
         """从线稿图一路做到上色成品。
 
         Parameters
@@ -87,6 +91,10 @@ class HandDrawScene(MovingCameraScene):
         draw : bool
             为 ``False`` 时只抽取不绘制，把 :class:`StrokeSet` 返回给调用方
             自行编排（想插特写、加几何构造时用）。
+        color_mode : "sweep" | "soft"
+            ``"soft"`` 将每张色层整层柔和淡入并累积保留；传入
+            ``color_final`` 时，在完整成品图显示后才移除早先色层。默认
+            ``"sweep"`` 保留 0.1.0 的逐条扫描效果。
         **extract_kw
             透传给 :func:`manim_handdraw.extract.extract_strokes`，例如
             ``drop_inside=[眼睛椭圆]``、``merge_gap=9.0``。
@@ -128,16 +136,38 @@ class HandDrawScene(MovingCameraScene):
 
         if color:
             layers = [color] if isinstance(color, str) else list(color)
-            holder = None
-            for layer in layers:
-                anim, grp = self.sweep_color(layer, size=size, center=center)
-                stage = [anim]
-                if holder is not None:
-                    stage.append(FadeOut(holder))
-                self.play(*stage)
-                if holder is not None:
-                    self.remove(holder)
-                holder = grp
+            if color_mode == "soft":
+                holders = []
+                for index, layer in enumerate(layers):
+                    grp = ImageMobject(layer)
+                    grp.scale_to_fit_height(size).move_to([center[0], center[1], 0])
+                    grp.set_z_index(20 + index)
+                    self.play(FadeIn(grp, shift=UP * 0.05),
+                              run_time=color_layer_run_time)
+                    holders.append(grp)
+                    if color_layer_pause:
+                        self.wait(color_layer_pause)
+                if color_final is not None:
+                    full = ImageMobject(color_final)
+                    full.scale_to_fit_height(size).move_to([center[0], center[1], 0])
+                    full.set_z_index(20 + len(holders))
+                    self.play(FadeIn(full, shift=UP * 0.05),
+                              run_time=color_layer_run_time)
+                    self.play(FadeOut(Group(*holders)), run_time=0.8)
+                    self.remove(*holders)
+            elif color_mode == "sweep":
+                holder = None
+                for layer in layers:
+                    anim, grp = self.sweep_color(layer, size=size, center=center)
+                    stage = [anim]
+                    if holder is not None:
+                        stage.append(FadeOut(holder))
+                    self.play(*stage)
+                    if holder is not None:
+                        self.remove(holder)
+                    holder = grp
+            else:
+                raise ValueError("color_mode must be 'sweep' or 'soft'")
             # 成品接管画面后墨线必须退场：否则角色一旦位移（比如后坐力），
             # 底下的线稿就会从边缘露出来，看起来像多了一层"幽灵轮廓"。
             self.play(FadeOut(VGroup(*ink_layer)), run_time=0.8)
@@ -208,6 +238,7 @@ class HandDrawScene(MovingCameraScene):
             self.wait(pause)
         if fade_scaffold:
             fade = [FadeOut(info["scaffold"])]
+            fade.append(FadeOut(info["path"]))
             if info["arm"] is not None:
                 fade.append(FadeOut(info["arm"]))
             self.play(*fade, run_time=0.5)

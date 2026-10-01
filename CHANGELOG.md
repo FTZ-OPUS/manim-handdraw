@@ -4,6 +4,25 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1] — 2026-10-02
+
+### Added
+- `StrokeSet.cut_out_rectangles()` removes only the parts of traced paths inside
+  face windows, preserving hair or outlines that cross a window.
+- `StrokeSet.adaptive_widths()` offers a finer starting width for crowded
+  regions while keeping isolated outlines readable.
+- `HandDrawScene.hand_draw(color_mode="soft", color_final=...)` supports
+  cumulative, softly revealed colour layers and a final full image.
+- A portable [portrait creation skill](skills/manim-handdraw-creator/SKILL.md)
+  with scripts, reference notes, a runnable preview, and a matched pencil/colour
+  sample. Eyes and other facial details in that workflow are extracted from the
+  original pencil pixels; they are not hand-traced vectors.
+
+### Fixed
+- Stroke caches now invalidate when the source image or extraction options change.
+- Resampled stroke widths remain aligned to their resampled path points.
+- `construct_ellipse()` removes its temporary guide path with the scaffold.
+
 ## [0.1.0] — 2026-09-18
 
 First public release.

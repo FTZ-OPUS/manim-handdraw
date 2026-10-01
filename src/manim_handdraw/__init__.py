@@ -25,7 +25,7 @@
 
 from __future__ import annotations
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 # ---- 轻量层：只依赖 manim + numpy -------------------------------------
 from .geometry import (  # noqa: E402

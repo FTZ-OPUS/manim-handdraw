@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "manim-handdraw"
-version = "0.1.0"
+version = "0.1.1"
 description = "Turn a line-art bitmap into a progressive hand-drawn animation in Manim."
 readme = "README.md"
 requires-python = ">=3.9"
@@ -61,8 +61,6 @@ packages = ["src/manim_handdraw"]
 [tool.hatch.build.targets.sdist]
 include = [
     "src/manim_handdraw",
-    "examples",
-    "tests",
     "README.md",
     "README.zh-CN.md",
     "LICENSE",

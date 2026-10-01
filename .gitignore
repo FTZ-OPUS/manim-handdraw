@@ -9,4 +9,5 @@ venv/
 .DS_Store
 media/
 *.strokes.npz
+skills/manim-handdraw-creator/examples/generated/
 *_strips/
