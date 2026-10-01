@@ -8,7 +8,7 @@
 
 ## 看成片 / 下载
 
-- [下载压缩版 MOV（约 112 MiB）](https://github.com/FTZ-OPUS/manim-handdraw/releases/download/example-order-goddess/order-goddess-handdraw-1080p60-v6-compressed.mov)
+- [下载压缩版 MOV（约 110 MiB）](https://github.com/FTZ-OPUS/manim-handdraw/releases/download/example-order-goddess/order-goddess-handdraw-1080p60-v6-compressed.mov)
 - [下载此前发布的完整版 MP4（约 166 MiB）](https://github.com/FTZ-OPUS/manim-handdraw/releases/download/example-order-goddess/order-goddess-handdraw-1080p60-v6.mp4)
 - [查看案例 Release](https://github.com/FTZ-OPUS/manim-handdraw/releases/tag/example-order-goddess)
 
