@@ -3,7 +3,7 @@
 Run the two preparation commands in paired-inputs.md first. This scene draws
 a sampled subset with the pen, then rapidly completes the remaining strokes;
 the full
-six-act film lives in ../../examples/order-goddess-repro/order_goddess.py.
+six-act film lives in ../../../examples/order-goddess-repro/order_goddess.py.
 """
 
 import json
